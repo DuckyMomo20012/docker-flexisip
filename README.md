@@ -9,6 +9,11 @@
   - [Setup `flexisip-account-manager`
     repository](#setup-flexisip-account-manager-repository)
   - [Configuration files](#configuration-files)
+    - [Base configuration files](#base-configuration-files)
+    - [Update base ip address](#update-base-ip-address)
+    - [Reference configuration files](#reference-configuration-files)
+    - [Get the default `flexisip.conf` configuration
+      file](#get-the-default-flexisipconf-configuration-file)
 - [Deploy the services](#deploy-the-services)
   - [Run docker compose file](#run-docker-compose-file)
   - [Setup the Flexisip Account Manager
@@ -31,6 +36,15 @@ configurations so you can test on `ubuntu 23.10`.
 
 ## Prerequisites
 
+### Specifications
+
+This project is tested on the following specifications:
+
+- **OS**: `Ubuntu 23.10`.
+- **Docker**: `26.0.0`.
+- **flexisip** ([GitHub](https://github.com/BelledonneCommunications/flexisip)):
+  `8501f5b`.
+
 ### Build `flexisip` docker image from source code
 
 We will build the `flexisip` docker image from the source code using the file
@@ -38,7 +52,7 @@ We will build the `flexisip` docker image from the source code using the file
 
 1. Clone the flexisip source code from the git repository.
 
-> [!NOTE]
+> [!IMPORTANT]
 > You have to clone the repository **"recursive"** to get the submodules.
 
 - From Github:
@@ -125,6 +139,8 @@ sudo chmod -R 777 storage && sudo chmod -R 777 bootstrap/cache
 
 ### Configuration files
 
+#### Base configuration files
+
 The following configuration files are required to run the `docker-compose` file:
 
 - [`ubuntu23-10/redis/redis.conf`](./ubuntu23-10/redis/redis.conf).
@@ -133,23 +149,50 @@ The following configuration files are required to run the `docker-compose` file:
   (flexisip-account-manager,Laravel).
 - [`ubuntu23-10/nginx/nginx.conf`](./ubuntu23-10/nginx/nginx.conf).
 
-> [!NOTE]
-> The `ubuntu23-10/docker-compose.yml` is already updated with the required
-> MariaDB environment variables, so we don't need to add the file
-> `ubuntu23-10/.env`.
 
-> [!TIP]
-> You can refer to the files in the repo or use files already defined in folder
-> `ubuntu23-10` for reference:
->
-> - [`ubuntu20-04/docker_files/redis/redis.conf`](./ubuntu20-04/docker_files/redis/redis.conf).
-> - [`docker/flexisip.conf.sample`](./docker/flexisip.conf.sample).
-> - [`ubuntu20-04/.env`](./ubuntu20-04/.env) (for docker compose file).
-> - [`flexisip-account-manager/flexiapi/.env`](https://gitlab.linphone.org/BC/public/flexisip-account-manager/-/blob/master/flexiapi/.env.example)
->   (flexisip-account-manager,Laravel)`.
-> - [`ubuntu20-04/docker_files/nginx/nginx_default.conf`](./ubuntu20-04/docker_files/nginx/nginx_default.conf).
+#### Update base ip address
 
----
+By default, all the configuration files are configured with the IP address
+`192.168.1.17`, with subdomains. You have to update the IP address to your own
+IP address manually in the following files:
+
+- [`ubuntu23-10/flexisip_conf/flexisip.conf`](./ubuntu23-10/flexisip_conf/flexisip.conf).
+- [`ubuntu23-10/.env.flexiapi`](./ubuntu23-10/.env.flexiapi).
+
+Or you can use the `perl` command to update the IP address with your own IP
+address (**recommended**):
+
+```bash
+cd ubuntu23-10
+
+REPLACE_IP="192.168.1.127"
+LOCAL_IP="192.168.1.17"
+
+perl -i -pe 's/'"$LOCAL_IP"'/'"$REPLACE_IP"'/g' ./.env.flexiapi ./flexisip_conf/flexisip.conf
+```
+
+Or you can use the `perl` command to update the IP address with your own IP
+address and **remove the subdomains**:
+
+```bash
+cd ubuntu23-10
+
+REPLACE_IP="192.168.1.127"
+LOCAL_IP="192.168.1.17"
+
+perl -i -pe 's/(?<=[=\"])(\w*\.)?'"$LOCAL_IP"'\.nip\.io/'"$REPLACE_IP"'/g' ./.env.flexiapi ./flexisip_conf/flexisip.conf
+```
+
+#### Reference configuration files
+
+- [`ubuntu20-04/docker_files/redis/redis.conf`](./ubuntu20-04/docker_files/redis/redis.conf).
+- [`docker/flexisip.conf.sample`](./docker/flexisip.conf.sample).
+- [`ubuntu20-04/.env`](./ubuntu20-04/.env) (for docker compose file).
+- [`flexisip-account-manager/flexiapi/.env`](https://gitlab.linphone.org/BC/public/flexisip-account-manager/-/blob/master/flexiapi/.env.example)
+  (flexisip-account-manager,Laravel)`.
+- [`ubuntu20-04/docker_files/nginx/nginx_default.conf`](./ubuntu20-04/docker_files/nginx/nginx_default.conf).
+
+#### Get the default `flexisip.conf` configuration file
 
 To get the default `flexisip.conf` [config
 file](https://wiki.linphone.org/xwiki/wiki/public/view/Flexisip/Configuration/),
@@ -397,11 +440,11 @@ http://localhost/phpmyadmin
 
 With the credentials defined for `MariaDB` in the `docker-compose.yml` file:
 
-- Root:
+- Root user:
   - **Username**: `root`.
   - **Password**: `mysql`.
 
-- User:
+- Normal user:
   - **Username**: `mysql`.
   - **Password**: `mysql`.
 
@@ -409,24 +452,28 @@ With the credentials defined for `MariaDB` in the `docker-compose.yml` file:
 
 You can access the `Flexisip Account Manager` using the following URL:
 
-```bash
-http://localhost/api
+- API documentation:
 
-# or
+  ```bash
+  http://account.192.168.1.17.nip.io/api
+  ```
 
-http://localhost/documentation
-```
+- Swagger documentation:
+
+  ```bash
+  http://account.192.168.1.17.nip.io/documentation
+  ```
 
 - Login page:
 
   ```bash
-  http://localhost/login
+  http://account.192.168.1.17.nip.io/login
   ```
 
 - Register page:
 
   ```bash
-  http://localhost/register
+  http://account.192.168.1.17.nip.io/register
   ```
 
 ### Access the MariaDB database
@@ -437,11 +484,11 @@ client tool with these credentials:
 
 - **Host**: `localhost`.
 - **Port**: `3306`.
-- Root:
+- Root user:
   - **Username**: `root`.
   - **Password**: `mysql`.
 
-- User:
+- Normal user:
   - **Username**: `mysql`.
   - **Password**: `mysql`.
 
@@ -449,6 +496,7 @@ client tool with these credentials:
 
 - [SIP authentication process](./docs/sip-auth-process.md).
 - [Setup softphone](./docs/setup-softphone.md).
+- [Setup TLS](./docs/setup-tls.md).
 
 ## FAQ
 
