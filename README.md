@@ -291,14 +291,26 @@ docker ps
 You will get the following output:
 
 ```bash
-CONTAINER ID   IMAGE                              COMMAND                  CREATED       STATUS          PORTS                                                                      NAMES
-07f56cc27000   phpmyadmin/phpmyadmin:fpm-alpine   "/docker-entrypoint.…"   2 hours ago   Up 44 minutes   9000/tcp                                                                   phpmyadmin-fpm
-e45146708df9   flexisip                           "/flexisip-entrypoin…"   2 hours ago   Up 44 minutes                                                                              ubuntu-flexisip
-ce3fab6e02a4   ubuntu23-10-php-fpm-laravel        "docker-php-entrypoi…"   2 hours ago   Up 44 minutes   0.0.0.0:8000->8000/tcp, :::8000->8000/tcp, 9000/tcp                        php-fpm-laravel
-be1fe1970bb2   nginx:alpine                       "/docker-entrypoint.…"   2 hours ago   Up 44 minutes   0.0.0.0:80->80/tcp, :::80->80/tcp, 0.0.0.0:443->443/tcp, :::443->443/tcp   nginx
-3193e93fc232   redis:alpine                       "docker-entrypoint.s…"   2 hours ago   Up 44 minutes   0.0.0.0:6379->6379/tcp, :::6379->6379/tcp                                  redis
-de0711c1f7ba   mariadb                            "docker-entrypoint.s…"   2 hours ago   Up 44 minutes   0.0.0.0:3306->3306/tcp, :::3306->3306/tcp                                  flexisip-mariadb
+CONTAINER ID   IMAGE                              COMMAND                  CREATED         STATUS         PORTS                                                                      NAMES
+c36887f00b26   flexisip                           "/flexisip-entrypoin…"   2 minutes ago   Up 2 minutes   0.0.0.0:5060-5061->5060-5061/tcp, :::5060-5061->5060-5061/tcp              ubuntu-flexisip
+dfb4f558e7d3   nginx:alpine                       "/docker-entrypoint.…"   9 hours ago     Up 2 minutes   0.0.0.0:80->80/tcp, :::80->80/tcp, 0.0.0.0:443->443/tcp, :::443->443/tcp   nginx
+b533a69ea894   phpmyadmin/phpmyadmin:fpm-alpine   "/docker-entrypoint.…"   34 hours ago    Up 2 minutes   9000/tcp                                                                   phpmyadmin-fpm
+9d285f04e50c   ubuntu23-10-php-fpm-laravel        "docker-php-entrypoi…"   34 hours ago    Up 2 minutes   0.0.0.0:8000->8000/tcp, :::8000->8000/tcp, 9000/tcp                        php-fpm-laravel
+2421c502e2ea   redis:alpine                       "docker-entrypoint.s…"   34 hours ago    Up 2 minutes   0.0.0.0:6379->6379/tcp, :::6379->6379/tcp                                  redis
+8cd52def74d5   mariadb                            "docker-entrypoint.s…"   34 hours ago    Up 2 minutes   0.0.0.0:3306->3306/tcp, :::3306->3306/tcp                                  flexisip-mariadb
 ```
+
+Since the `network_mode` is [not compatible with other
+OS](https://docs.docker.com/network/drivers/host/#:~:text=The%20host%20networking%20driver%20only%20works%20on%20Linux%20hosts%2C%20and%20is%20not%20supported%20on%20Docker%20Desktop%20for%20Mac%2C%20Docker%20Desktop%20for%20Windows%2C%20or%20Docker%20EE%20for%20Windows%20Server.),
+it's changed to expose the ports to the host machine.
+
+> [!NOTE]
+> Remove the `network_mode: "host"` means you can't access the `flexisip` server
+> from the host machine, so you **no longer can use `wireshark` to capture the SIP
+> packets**.
+
+<details>
+<summary>Debug when using <code>network_mode: "host"</code></summary>
 
 For the `ubuntu-flexisip` container, it configured with `network_mode: "host"`,
 it's running in the host network, so you can't see the ports in the `docker ps`
@@ -311,13 +323,6 @@ port using the following command:
 sudo netstat -ntlp | grep LISTEN | grep flexisip
 ```
 
-> [!NOTE]
-> You will have to install `net-tools` package to use the `netstat` command:
->
->  ```bash
->  sudo apt-get install net-tools
->  ```
-
 You will get the following output:
 
 ```bash
@@ -329,6 +334,8 @@ tcp6       0      0 2402:800:631d:23a9:5060 :::*                    LISTEN      
 tcp6       0      0 ::1:5060                :::*                    LISTEN      61046/flexisip
 tcp6       0      0 2402:800:631d:23a9:5060 :::*                    LISTEN      61046/flexisip
 ```
+
+</details>
 
 > [!IMPORTANT]
 > The `flexisip` server is listening on the port `5060`, but **it won't receive

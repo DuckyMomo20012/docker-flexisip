@@ -68,6 +68,9 @@ services:
   ubuntu-flexisip:
     container_name: ubuntu-flexisip
     image: flexisip
+    ports:
+      - 5060-5061:5060-5061
+      - 5060-5061:5060-5061/udp
     volumes:
       - ./letsencrypt:/etc/letsencrypt
       # previously need to add "flexisip" directory and input "flexisip.conf" into it.
@@ -96,7 +99,8 @@ services:
     # for conference server? https://wiki.linphone.org/xwiki/wiki/public/view/Flexisip/C.%20Features/Conference%20server/
     #devices:
     #  - "/dev/snd:/dev/snd"
-    network_mode: "host"
+    # NOTE: network_mode: "host" is not compatible with MacOS
+    # network_mode: "host"
 
   ##### phpmyadmin-fpm
   phpmyadmin-fpm:
