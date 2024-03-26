@@ -3,6 +3,7 @@
 ## Table of contents
 - [Introduction](#introduction)
 - [Prerequisites](#prerequisites)
+  - [Specifications](#specifications)
   - [Build `flexisip` docker image from source
     code](#build-flexisip-docker-image-from-source-code)
 - [Setup and configurations](#setup-and-configurations)
@@ -32,6 +33,17 @@ This repository is a forked version of the original repository:
 https://github.com/capitalfuse/docker-flexisip, which is updated with required
 configurations so you can test on `ubuntu 23.10`.
 
+Support features:
+
+- [x] Flexisip proxy server.
+  - [x] Flexisip proxy server authentication.
+  - [ ] Flexisip proxy server TLS.
+- [x] Flexisip account manager.
+  - [x] Flexisip account manager TLS (Check [here](./docs/setup-tls.md)).
+- [x] phpMyAdmin web interface.
+- [ ] Flexisip conference server.
+- [ ] Flexisip presence server.
+
 ![schema](docker-flexisip-system.png)
 
 ## Prerequisites
@@ -43,7 +55,7 @@ This project is tested on the following specifications:
 - **OS**: `Ubuntu 23.10`.
 - **Docker**: `26.0.0`.
 - **flexisip** ([GitHub](https://github.com/BelledonneCommunications/flexisip)):
-  `8501f5b`.
+  `8501f5b` (build Docker image).
 
 ### Build `flexisip` docker image from source code
 
@@ -202,108 +214,6 @@ you can run the following command:
 docker exec ubuntu-flexisip flexisip --dump-all-default > flexisip.conf
 ```
 
-### Setup flexisip proxy server authentication
-
-> [!NOTE]
-> The demo use the domain `nip.io` to simulate the domain configuration. You can
-> see the documentation for more information: [nip.io](https://nip.io/).
-
-The demo configuration for file `flexisip.conf` is defined with the following
-content:
-
-```conf
-[global]
-aliases=192.168.1.17.nip.io
-[module::Authentication]
-enabled=true
-auth-domains=account.192.168.1.17.nip.io
-available-algorithms=SHA-256
-db-implementation=soci
-soci-backend=mysql
-soci-connection-string=db=flexisip user=mysql password=mysql host=db.192.168.1.17.nip.io
-soci-password-request=select password, algorithm from passwords join accounts on passwords.id = accounts.id where accounts.username = :id and accounts.domain = :domain
-[module::Registrar]
-reg-domains=account.192.168.1.17.nip.io
-```
-
-- `reg-domains`: with the default value `localhost`, which means the `flexisip`
-  server will only accept `REGISTER` requests from the domain `localhost`. See
-  more from [Check service ports](#check-service-ports).
-  - This value SHOULD match the `APP_SIP_DOMAIN` env defined in `flexiapi` from
-    the [`ubuntu23-10/.env.flexiapi`](./ubuntu23-10/.env.flexiapi) file.
-
-  - Without enabling the `Authentication` module, you can use Linphone or any
-    other SIP client to register many account as you want with the domain
-    `localhost`.
-
-- `auth-domains`: list of domain to check credentials for the `REGISTER`
-  requests. You can use wildcard `*` to accept all domains, or stricter to only
-  check the domain that match `reg-domains`.
-
-- `available-algorithms`: list of available algorithms for the password
-  encryption. The `flexiapi` server hash the password with the algorithm
-  `SHA-256`, this can be change using the `ACCOUNT_DEFAULT_PASSWORD_ALGORITHM`
-  env from the [`ubuntu23-10/.env.flexiapi`](./ubuntu23-10/.env.flexiapi) file.
-
-> [!NOTE]
-> Zoiper 5 only support `MD5` algorithm, so you have to switch
-> `available-algorithms` to `MD5` in the `flexisip.conf` file. You can check
-> the documentation for more information: [Setup
-> Softphone](./docs/setup-softphone.md).
-
-> [!CAUTION]
-> DO NOT mix the hash algorithm in the `available-algorithms` like `MD5
-> SHA-256`, so the `flexisip` server can register requests from the Linphone and
-> Zoiper 5.
-
-
-
-- `db-implementation`: the database implementation to store the account
-  information. We use `soci` to read the account information from the MariaDB.
-
-- `soci-backend`: the database backend to connect to the MariaDB.
-
-- `soci-connection-string`: the connection string to connect to the MariaDB.
-
-  - Note that the `flexisip` server **cannot lookup the domain from container service
-    name**.
-
-- `soci-password-request`: the SQL query to get the password and algorithm for
-  the account.
-
-  - The `:id` and `:domain` are the placeholders for the account username and
-    domain.
-
-  - The query should return the password and algorithm for the account.
-
-  - The `flexisip` server will hash the password with the algorithm before
-    comparing it with the `REGISTER` request.
-
-      - With the algorithm `SHA-256`, with `username` is `bob`, `domain` is
-        `localhost` and `password` is `password`, the hashed password will be
-        hashed as follows:
-
-        ```text
-        HASH = SHA-256("bob:localhost:password") = 8be01ad9dc03ef2a610bf13c7e307e78dd72c973ad365eb2b128505f8dbeaa74
-        ```
-
-        Check with terminal:
-
-        ```bash
-        echo -n "bob:localhost:password" | sha256sum
-        # 8be01ad9dc03ef2a610bf13c7e307e78dd72c973ad365eb2b128505f8dbeaa74
-        ```
-
-      - You can check the documentation the [SIP authentication
-        process](./docs/sip-auth-process.md) for the example packet capture and
-        the authentication process.
-
-> [!NOTE]
-> You can check these configuration documentation in file
-> [`ubuntu23-10/flexisip_conf/flexisip.conf.default`](./ubuntu23-10/flexisip_conf/flexisip.conf.default)
-> for more information.
-
-
 ## Deploy the services
 
 ### Run docker compose file
@@ -455,25 +365,25 @@ You can access the `Flexisip Account Manager` using the following URL:
 - API documentation:
 
   ```bash
-  http://account.192.168.1.17.nip.io/api
+  http://account.<YOUR-LOCAL-IP>.nip.io/api
   ```
 
 - Swagger documentation:
 
   ```bash
-  http://account.192.168.1.17.nip.io/documentation
+  http://account.<YOUR-LOCAL-IP>.nip.io/documentation
   ```
 
 - Login page:
 
   ```bash
-  http://account.192.168.1.17.nip.io/login
+  http://account.<YOUR-LOCAL-IP>.nip.io/login
   ```
 
 - Register page:
 
   ```bash
-  http://account.192.168.1.17.nip.io/register
+  http://account.<YOUR-LOCAL-IP>.nip.io/register
   ```
 
 ### Access the MariaDB database
@@ -494,9 +404,10 @@ client tool with these credentials:
 
 ## Other documentations
 
-- [SIP authentication process](./docs/sip-auth-process.md).
-- [Setup softphone](./docs/setup-softphone.md).
+- [SIP Authentication Process](./docs/sip-auth-process.md).
+- [Setup Softphone](./docs/setup-softphone.md).
 - [Setup TLS](./docs/setup-tls.md).
+- [Setup flexisip Proxy Server Authentication](./docs/setup-flexisip-auth.md).
 
 ## FAQ
 
@@ -519,6 +430,10 @@ client tool with these credentials:
 
 - I can't access the account manager web page
 
+  - Make sure you update the IP address in the `.env.flexiapi` and `flexisip.conf`
+    files as mentioned in the [Update base ip address](#update-base-ip-address)
+    section.
+
   - Make sure you have setup the flexisip-account-manager server as mentioned in
     the [Setup the Flexisip Account Manager server](#setup-the-flexisip-account-manager-server)
     section.
@@ -534,6 +449,9 @@ client tool with these credentials:
     higher than the version defined in the `flexisip/docker/flex-from-src`
     file, you have to update the `cmake` version in the `flexisip/docker/flex-from-src`
     file.
+
+  - Try to clone the `flexisip` source code that matches the `flexisip` version
+    mentioned in the [Prerequisites](#prerequisites) section.
 
 - On MacOS, I can't register my account with the softphone client
 
